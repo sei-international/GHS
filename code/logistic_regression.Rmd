@@ -1,0 +1,215 @@
+---
+title: "GHS implementation status Logistic Regression Analysis"
+author: "Steve Fick"
+date: "Sep 20, 2017"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    code_folding: hide
+    theme: spacelab
+---
+
+# Introduction
+
+The purpose of this exercise is to determine which variables in the GHS dataset best 'explain' variation GHS implementation status.
+
+To do this we can use a multiple regression technique called *logistic regression*, in which the dependent response variable is modeled as '1' or '0' via a bionomial distribution.
+
+This method essentially takes a regular multiple regression formula and performs a log transformation on it (thus 'logistic regression') so the response will always fall between 0 and 1.
+
+One side-effect of this transformation is that interpretation of the effects become a bit different. Normally coefficients correspond to linear increases in the response variable ( eg in the formula y = mx + b , 1 unit increase in x results in m units increase in y). However in logistic regression, 1 unit increase in x results in a *nonlinear* increase in y which is related to m. 
+
+However, this is not a big problem for this analysis because we are mostly interested in identifying the importance of each variable, holding others constant, rather than the direct effect of each variable on the actual probability of GHS implementation occurring. Given this, it makes sense to first *scale* and *center* each variable so that comparisons of coefficients may be more general.
+
+# Method
+
+## 0. load data
+```{r, warning=FALSE, message=FALSE, error=FALSE, results = 'hide'}
+library(knitr)
+library(Hmisc)
+library(car)
+d <- read.csv(file.path('..', outdir,'data.csv'), check.names=F, strings=F)
+```
+
+*Recode variables*
+
+```{r}
+# ghs = 1 if partial or full implementation, 0 if no implementation
+d$ghs <- as.numeric(d$`GHS  implementation` >0)
+
+# reduction to trade bariers
+d$wto <- d$`WTO membership`
+d$wto <- as.factor(d$wto)
+
+d$trade <- as.numeric(as.character(d$`Trade Open-ness for 2013`))
+
+# Commitment to safety
+
+# ILO = 1 if *ANY* ratifications signed
+d$ILO <- rowSums(d[, grep('ILO Conv', names(d))])
+d$ILO <- as.factor(d$ILO > 0)
+
+# Commitment to environment
+
+# env = number of environmental documents ratified
+d$env <- rowSums(d[, c("Sthlm ratification",  "Rotterdam ratificaiton","Basel ratification","SAICM focal point in place=1")])
+
+#globalization
+d$global <- d[['KOF sub-index C']]
+
+# GDP per person
+d$GDPP <- d$`GDP per Capita PPP for 2015`
+
+# GDP Total
+d$GDPT <- d$`Total GDP, PPP, for 2015`
+
+# Regulation 
+d$regulation <- d$RegulatoryQuality
+
+# Governance
+d$governance <- d$GovernmentEffectiveness
+
+```
+
+*Scale continuous variables* to promote inter-comparisons
+
+```{r}
+cc <- c('GDPP', 'GDPT', 'global', 'trade', 'env', 'regulation', 'governance')
+ds <-d 
+ds[,cc] <- scale(d[,cc])
+rownames(ds) <- ds$`Country name`
+```
+
+## 1. Evaluate correlations
+
+```{r}
+x <- rcorr(as.matrix(d[,c('governance', 'regulation', 'GDPP', 'GDPT','global', 'trade')]))
+
+```
+
+*Pearsons correlation*
+```{r}
+kable(x$r)
+```
+
+Governance, regulation, and GDP per capita are highly correlated (all > .69). 
+Next highest correlation is regulation and GD per capita (.42)
+
+*Significance (P)*
+```{r}
+kable(x$P)
+```
+  
+All correlations are highly significant
+
+Correlations could be problematic for our model, because it will be difficult to determine what the effect of regulation vs governance are 'independent of' GDP and vice versa, because we wont have (any) examples where GDP is is high but regulation is low to see the effects on GHS, for example.
+
+##2. Model fitting
+
+
+Lets try to create a first model with all terms thrown in.
+```{r}
+
+m0 <- glm(ghs ~ regulation + governance + GDPP + GDPT + global + env + ILO + trade + wto, data = ds , family = 'binomial')
+
+summary(m0)
+```
+
+Ok, starting from the top we see our formula, then the deviance residuals.
+The deviance residuals appear approximately normal based on the quantiles, which is a good thing.
+
+Next we see the coefficients. The intercept indicates the overall likelihood for a country to have GHS (without ILO ratification or wto ratification) 
+The fact that this is negative means that overall, likelihood is small that a random country will have GHS implementation.
+
+GDP per capita interestingly has a negative coefficient. This can happen, however when predictors are highly correlated -- one has to compensate for the other. In this case I think GDPP is compensating for Regulation and Governance.
+
+GDPT is positive, but not significant
+
+globalization is positive and significant
+
+environmental ratification is positive but not significant
+
+ILO is very strongly positive and significant
+
+trade openness is large, positive and significant.
+
+Interestingly WTO membership is slightly negative. However the standard error for this coefficient is high making interpretation difficult.
+
+
+---
+
+Lets explore this idea of correlation between GDPP and regulation, by examinging the Variance Inflation Factor (VIF) for each variable. 
+This gives us a sense of how much the overall uncertainty in the model increases when adding a variable, compared to adding a completely uncorrelated variable.
+Any value greater than 2 is considered high, and > 5 is very high
+
+```{r}
+vif(m0)
+
+```
+
+We see that regulation, governance, and GDPP have high VIF, likely due to their high correlation. This is a problem in linear modeling called multi-colinearity.
+
+As a result it makes interpretation of the colinear variables problematic, because they have uncertain standard errors. This makes the model highly sensitive to the underlying data as well.  
+
+One simple solution to this problem is to simply remove a colinear variable. I think it is reasonable to drop governance because it provides similar information to regulation.
+
+---
+
+## 3. Refit model dropping government effectiveness
+
+```{r}
+
+m <- glm(ghs ~ governance + GDPP+ GDPT + global + env + ILO + trade + wto, data = ds , family = 'binomial')
+
+```
+
+lets check the VIF
+
+```{r}
+vif(m)
+```
+
+much more reasonable!
+
+```{r}
+summary(m)
+```
+
+This looks better to me...
+The HDI effect is now much lower (although highly significant)
+trade and globalization are both significant
+Also, ILO ratification is now a large and significant explanatory variable
+
+Outputting results to table. 
+
+```{r}
+kable(coef(summary(m)))
+
+```
+
+Other statistics of interest: 
+AIC (a measure of goodness of fit) -- decent, in this case 
+
+1- (Residual Deviance / Null deviance) -- analogous to R2. In this case it is `r 1-(summary(m)$deviance / summary(m)$null.deviance)`
+which is not bad.  
+
+
+## Omitted countries
+  
+Note: some countries were excluded from analysis because of missing data. Presented here...
+
+```{r}
+i <- attr(m$model, 'na.action')
+kable(d[i,c(cc, 'ILO', 'wto', 'env')])
+```
+
+
+## Top Residuals
+```{r}
+r <- data.frame(country = names(resid(m)),residual = resid(m))
+r <- r[order(abs(r$residual), decreasing = TRUE),]
+r$rank <- 1:nrow(r)
+r$country  <- NULL
+kable(r)
+```

@@ -1,0 +1,110 @@
+---
+title: "GHS implementation status individual stats analysis"
+author: "Steve Fick"
+date: "Sep 20, 2017"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    code_folding: hide
+    theme: spacelab
+---
+
+# Pairwise statistical tests for relationship between indicators and GHS status (yes / no)
+
+## 0. load data
+```{r, warning=FALSE, message=FALSE, error=FALSE, results = 'hide'}
+library(knitr)
+library(Hmisc)
+library(car)
+library(pander)
+d <- read.csv(file.path('..', outdir,'data.csv'), check.names=F, strings=F)
+
+d$ghs <- d$GHS >= 1 # partial GHS considered 'full'
+
+```  
+
+## WTO (chi squared test)
+
+```{r}
+m <- table( 'ghs' = d$ghs, 'wto' = d$`WTO membership`)
+colnames(m) <- rev(c('WTO', 'Non WTO'))
+rownames(m) <- rev(c('implemented', 'non implemented'))
+kable(m)
+chisq.test(m)
+```  
+
+## ILO ratification (chi squared test)
+
+```{r}
+
+m <- matrix( c(23, 94, 29 +10 + 4, 28 +4 +1), 2, 2)
+colnames(m) <- c('0 convention', '>1 convention')
+rownames(m) <- c('implemented', 'non-implemented')
+m
+chisq.test(m)
+
+```  
+
+## SAICM (chi squared test)
+
+```{r}
+d$saicm <- rowSums(d[, c("Sthlm ratification",  "Rotterdam ratificaiton","Basel ratification","SAICM focal point in place=1")])
+
+m <- table( d$ghs,cut(d$saicm, c(-1,2,3,4)))
+
+chisq.test(m)
+```  
+
+# Trade open-ness index (t-test)
+
+```{r}
+d$trade <- as.numeric(as.character(d$`Trade Open-ness for 2013`))
+i <- which(d$ghs)
+tst <- t.test(d$trade[i], d$trade[-i])
+print(tst$statistic)
+print(tst$parameter)
+print(' p = ')
+print(tst$p.value)
+
+```  
+
+# Kof political globalization index (t-test)
+```{r}
+#globalization
+d$kof <- d[['KOF sub-index C']]
+tst <- t.test(d$kof[i], d$kof[-i])
+tst
+```
+
+# GDP per person
+```{r}
+d$GDPP <- d$`GDP per Capita PPP for 2015`
+tst <- t.test(d$GDPP[i], d$GDPP[-i])
+tst
+
+
+```
+
+# GDP Total
+```{r}
+d$GDPT <- d$`Total GDP, PPP, for 2015`
+tst <- t.test(d$GDPT[i], d$GDPT[-i])
+tst
+```
+
+# Regulation 
+```{r}
+tst <- t.test(d$RegulatoryQuality[i], d$RegulatoryQuality[-i])
+tst
+
+```
+
+# Governance
+```{r}
+tst <- t.test(d$GovernmentEffectiveness[i], d$GovernmentEffectiveness[-i])
+tst
+
+```
+
+
