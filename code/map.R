@@ -28,12 +28,13 @@ wm$GHS2 <- wm$GHS + 2
 wm@data <- wm@data[order(wm$id),]
 
 # play around with colors
-colors = c( '-1' = 'gray', 
+colors = c( '-1' = 'white', 
             '0' = 'red', 
-            '1' = 'purple',
-            '2' = 'blue')
+            '1' = 'gray',
+            '2' = 'black')
 colors = c('#f1eef6','#bdc9e1','#74a9cf','#0570b0')
 colors = c('#edf8fb','#b3cde3','#8c96c6','#88419d')
+colors = wesanderson::wes_palettes$Darjeeling[1:4]
 bord = rgb(0,0,0,.2)
 
 # generate background grid
@@ -58,8 +59,9 @@ RR <- spTransform(R, CRS("+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum
 
 png( file = outfile2, width = 13, height = 6.45, res = 500, units = 'in')
 #x11(width = 13, height = 6.45)
-plot(RR, col = grey(.95), bord = grey(.9))
+plot(RR, col = grey(1), bord = grey(.3))
 plot(wmr, col = colors[wm$GHS2], border = bord, add =TRUE)
+#plot(wmr, col = colors[wm$GHS2], border = 'white', add =TRUE)
 # plot(wm, col = wm$GHS2, border = bord, add =TRUE)
 legend(-21020459, -5768919, legend = c( 'no implementation', 'partial implementation', 'full implementation', 'no data'), fill = c(colors[-1], colors[1]), bty = 'n')
 

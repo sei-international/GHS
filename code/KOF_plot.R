@@ -2,9 +2,12 @@ library(readxl)
 library(plotly)
 library(wordcloud)
 
-outfile <- paste0(outdir,'/figures/HDI x GHS ',  format(Sys.time(), "%Y-%m-%d"),'.png')
-ylabel <- 'HDI (2015)'
-YLIM <- c(.25,1)
+
+outfile <- paste0(outdir,'/figures/KOF political x GHS ',  format(Sys.time(), "%Y-%m-%d"),'.png')
+
+
+ylabel <- 'KOF Political Globalization Score'
+YLIM <- c(19,100)
 
 d <- read.csv(file.path(outdir,'data.csv'), check.names=F)
 
@@ -12,7 +15,7 @@ d <- read.csv(file.path(outdir,'data.csv'), check.names=F)
 d$GHS <- d$`GHS  implementation`
 d$ghs <- d$GHS >0
 i <- which(d$ghs)
-d$y <- d$`HDI for 2015`
+d$y <- d$`KOF sub-index C`
 
 
 set.seed(501)

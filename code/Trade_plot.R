@@ -1,5 +1,6 @@
 library(readxl)
 library(plotly)
+library(wordcloud)
 
 outfile <- paste0(outdir,'/figures/Trade x GHS ',  format(Sys.time(), "%Y-%m-%d"),'.png')
 
@@ -7,42 +8,57 @@ d <- read.csv(file.path(outdir,'data.csv'), check.names=F)
 
 
 d$GHS <- d$`GHS  implementation`
-d$GHS <- d$`GHS  implementation`
 d$ghs <- d$GHS >0
 i <- which(d$ghs)
-d$HDI <- d$`HDI for 2015`
 d$trade <- as.numeric(as.character(d$`Trade Open-ness for 2013`))
 
 
 set.seed(501)
-d$x <- d$ghs+1+ rnorm(n = nrow(d), 0,.1) 
+d$x <- d$ghs+1+ rnorm(n = nrow(d), 0,.08) 
 
+a <- d[, c('Country name','Country code', 'trade', 'x', 'ghs')]
+a <- na.omit(a)
 
+red <- function(nc, reduce){
+  centx <- nc[,1] + .5*nc[,3]
+  centy <- nc[,2] + .5*nc[,4]
+  
+  nc[,1] <- centx - .5*nc[,3]*reduce
+  nc[,2] <- centy - .5*nc[,4]*reduce
+  nc[,3] <- nc[,3]*reduce
+  nc[,4] <- nc[,4]*reduce
+  
+  nc
+}
 
-# multi-panel
-#layout(matrix(1:4,2,2))
+pfun <- function(p) { 
 
-shapes <- c(1,2, 3, 4, 20)
-shapes <- rep(16, 5)
+  x <- round(p, 3)
+  if(x == 0) return ( ' < 0.001 ') else return(x)
+}
 
-
-
-png( file = outfile, width = 7, height = 7, units = 'in', res = 300)
-
-
-plot(d$trade ~ as.factor(d$ghs), border = rgb(0,0,0,.3), outline = F, xlab = '', ylab = 'Trade Open-ness ( Imports + Exports / GDP ; 2013)', xaxt = 'n')
-points(d$trade ~ d$x, pch = shapes[d$dstatus], col = rgb(0,0,0,.3))
-points(d$trade ~ d$x, pch = 1, col = rgb(0,0,0,.7))
 
 tst <- t.test(d$trade[i], d$trade[-i], var.equal = TRUE)
 tst <- t.test(d$trade[i], d$trade[-i])
 
-legend('bottomright', legend =  c( paste0( 't: \t', round(tst$statistic,2)), paste0('df: \t', round(tst$parameter,1)), paste0('p: \t', round(tst$p.value,3))), cex = .7)
+r <- .9 
 
 
-# text(1.4, 85, paste0( 't: ', round(tst$statistic,2), ' \n df: ', round(tst$parameter,1), ' \np ', '< .001***') )
-axis(1, at = 1:2,tck=0, labels = c('no GHS', 'GHS'), cex.axis = 1)
+png( file = outfile, width = 7, height = 7, units = 'in', res = 300)
 
+plot(d$trade ~ as.factor(d$ghs), border = rgb(0,0,0,.7), outline = F, xlab = '', ylab = 'Trade Open-ness ( Imports + Exports / GDP ; 2013)', xaxt = 'n', col = grey(1), ylim = c(15, 195), lwd = 3)
+
+nc <- wordlayout(a$x, a$trade, a$`Country code`, cex = .95)
+nc <- red(nc, r)
+
+
+rect(nc[,1], nc[,2], nc[,1] + nc[,3], nc[,2] + nc[,4], col = rgb(1-as.numeric(a$ghs),0,0,.5), border = NA)
+text(nc[,1] + .5*nc[,3], nc[,2] + .5*nc[,4]+.09*nc[,4], a$`Country code`, cex = .65, col = 'white')
+axis(1, at = 1:2,tck=0, labels = c('Non-implemented', 'GHS implemented'), cex.axis = 1)
+legend('bottomright', legend =  c( paste0( 't: ', round(tst$statistic,2),'; df: ', round(tst$parameter,1),'; p: ', pfun(tst$p.value))), cex = .7, bty = 'n', text.font = 3)
+box(lwd=3)
 dev.off()
+
+
 
 

@@ -1,44 +1,60 @@
 library(readxl)
 library(plotly)
 
-outfile <- paste0(outdir,'/figures/regulatoryEffectiveness',  format(Sys.time(), "%Y-%m-%d"),'.png')
 
 d <- read.csv(file.path(outdir,'data.csv'), check.names=F)
 
+red <- function(nc, reduce){
+  centx <- nc[,1] + .5*nc[,3]
+  centy <- nc[,2] + .5*nc[,4]
+  
+  nc[,1] <- centx - .5*nc[,3]*reduce
+  nc[,2] <- centy - .5*nc[,4]*reduce
+  nc[,3] <- nc[,3]*reduce
+  nc[,4] <- nc[,4]*reduce
+  
+  nc
+}
+
+pfun <- function(p) { 
+
+  x <- round(p, 3)
+  if(x == 0) return ( ' < 0.001 ') else return(x)
+}
 
 d$GHS <- d$`GHS  implementation`
 d$ghs <- d$GHS >0
 i <- which(d$ghs)
-d$reg <- d$RegulatoryQuality
+
+outfile <- paste0(outdir,'/figures/regulatoryEffectiveness',  format(Sys.time(), "%Y-%m-%d"),'.png')
+
+d$y <- d$RegulatoryQuality
+ylabel = 'Regulatory Quality'
 
 
 set.seed(501)
-d$x <- d$ghs+1+ rnorm(n = nrow(d), 0,.1) 
+d$x <- d$ghs+1+ rnorm(n = nrow(d), 0,.08) 
 
+a <- d[, c('Country name','Country code', 'y', 'x', 'ghs')]
+a <- na.omit(a)
 
+tst <- t.test(d$y[i], d$y[-i], var.equal = TRUE)
+tst <- t.test(d$y[i], d$y[-i])
 
-# multi-panel
-#layout(matrix(1:4,2,2))
-
-shapes <- c(1,2, 3, 4, 20)
-shapes <- rep(16, 5)
-
+r <- .9 
 
 
 png( file = outfile, width = 7, height = 7, units = 'in', res = 300)
 
+plot(d$y ~ as.factor(d$ghs), border = rgb(0,0,0,.7), outline = F, xlab = '', ylab = ylabel, xaxt = 'n', col = grey(1),  lwd = 3)
 
-plot(d$reg ~ as.factor(d$ghs), border = rgb(0,0,0,.3), outline = F, xlab = '', ylab = 'Regulatory Quality', xaxt = 'n')
-points(d$reg ~ d$x, pch = shapes[d$dstatus], col = rgb(0,0,0,.3))
-points(d$reg ~ d$x, pch = 1, col = rgb(0,0,0,.7))
-
-tst <- t.test(d$reg[i], d$reg[-i])
-
-legend('bottomright', legend =  c( paste0( 't: \t', round(tst$statistic,2)), paste0('df: \t', round(tst$parameter,1)), paste0('p \t', '< .001***')))
-
-
-# text(1.4, 85, paste0( 't: ', round(tst$statistic,2), ' \n df: ', round(tst$parameter,1), ' \np ', '< .001***') )
-axis(1, at = 1:2,tck=0, labels = c('no GHS', 'GHS'), cex.axis = 1)
+nc <- wordlayout(a$x, a$y, a$`Country code`, cex = .95)
+nc <- red(nc, r)
+rect(nc[,1], nc[,2], nc[,1] + nc[,3], nc[,2] + nc[,4], col = rgb(1-as.numeric(a$ghs),0,0,.5), border = NA)
+text(nc[,1] + .5*nc[,3], nc[,2] + .5*nc[,4]+.09*nc[,4], a$`Country code`, cex = .65, col = 'white')
+axis(1, at = 1:2,tck=0, labels = c('Non-implemented', 'GHS implemented'), cex.axis = 1)
+legend('bottomright', legend =  c( paste0( 't: ', round(tst$statistic,2),'; df: ', round(tst$parameter,1),'; p: ', pfun(tst$p.value))), cex = .7, bty = 'n', text.font = 3)
+box(lwd=3)
 
 dev.off()
 
@@ -46,20 +62,30 @@ dev.off()
 
 outfile <- paste0(outdir,'/figures/governmentEffectiveness',  format(Sys.time(), "%Y-%m-%d"),'.png')
 
+d$y <- d$RegulatoryQuality
+ylabel = 'Government Effectiveness'
+
+
+a <- d[, c('Country name','Country code', 'y', 'x', 'ghs')]
+a <- na.omit(a)
+
+tst <- t.test(d$y[i], d$y[-i], var.equal = TRUE)
+tst <- t.test(d$y[i], d$y[-i])
+
+r <- .9 
+
 
 png( file = outfile, width = 7, height = 7, units = 'in', res = 300)
 
+plot(d$y ~ as.factor(d$ghs), border = rgb(0,0,0,.7), outline = F, xlab = '', ylab = ylabel, xaxt = 'n', col = grey(1),  lwd = 3)
 
-plot(d$GovernmentEffectiveness ~ as.factor(d$ghs), border = rgb(0,0,0,.3), outline = F, xlab = '', ylab = 'Government Effectiveness', xaxt = 'n')
-points(d$GovernmentEffectiveness ~ d$x, pch = shapes[d$dstatus], col = rgb(0,0,0,.3))
-points(d$GovernmentEffectiveness ~ d$x, pch = 1, col = rgb(0,0,0,.7))
-
-tst <- t.test(d$GovernmentEffectiveness[i], d$GovernmentEffectiveness[-i])
-
-legend('bottomright', legend =  c( paste0( 't: \t', round(tst$statistic,2)), paste0('df: \t', round(tst$parameter,1)), paste0('p \t', '< .001***')))
-
-
-# text(1.4, 85, paste0( 't: ', round(tst$statistic,2), ' \n df: ', round(tst$parameter,1), ' \np ', '< .001***') )
-axis(1, at = 1:2,tck=0, labels = c('no GHS', 'GHS'), cex.axis = 1)
+nc <- wordlayout(a$x, a$y, a$`Country code`, cex = .95)
+nc <- red(nc, r)
+rect(nc[,1], nc[,2], nc[,1] + nc[,3], nc[,2] + nc[,4], col = rgb(1-as.numeric(a$ghs),0,0,.5), border = NA)
+text(nc[,1] + .5*nc[,3], nc[,2] + .5*nc[,4]+.09*nc[,4], a$`Country code`, cex = .65, col = 'white')
+axis(1, at = 1:2,tck=0, labels = c('Non-implemented', 'GHS implemented'), cex.axis = 1)
+legend('bottomright', legend =  c( paste0( 't: ', round(tst$statistic,2),'; df: ', round(tst$parameter,1),'; p: ', pfun(tst$p.value))), cex = .7, bty = 'n', text.font = 3)
+box(lwd=3)
 
 dev.off()
+

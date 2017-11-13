@@ -23,7 +23,7 @@ source('code/map.R')
 source('code/GDP_plots.R')
 source('code/HDI_plot.R')
 source('code/KOF_HDI.R')
-source('code/KOF_plots.R')
+source('code/KOF_plot.R')
 source('code/Trade_plot.R')
 source('code/regulation_government_plot.R')
 
