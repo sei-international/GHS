@@ -52,6 +52,7 @@ chisq.test(m)
 d$saicm <- rowSums(d[, c("Sthlm ratification",  "Rotterdam ratificaiton","Basel ratification","SAICM focal point in place=1")])
 
 m <- table( d$ghs,cut(d$saicm, c(-1,2,3,4)))
+print(m)
 
 chisq.test(m)
 ```  

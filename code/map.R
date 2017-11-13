@@ -15,6 +15,7 @@ worldmap <- 'data/TM_WORLD_BORDERS-0.3/TM_WORLD_BORDERS-0.3.shp'
 
 # load data
 wm <- shapefile(worldmap)
+
 d <- read.csv(file.path(outdir, 'data.csv'), check.names=F,strings=F)
 
 setnames(d, c('Country code', 'GHS  implementation key (0-2)'), c('ISO3','GHS'))
@@ -60,7 +61,7 @@ png( file = outfile2, width = 13, height = 6.45, res = 500, units = 'in')
 plot(RR, col = grey(.95), bord = grey(.9))
 plot(wmr, col = colors[wm$GHS2], border = bord, add =TRUE)
 # plot(wm, col = wm$GHS2, border = bord, add =TRUE)
-legend(-19820459, -6568919, legend = c( 'no implementation', 'partial implementation', 'full implementation'), fill = colors[-1], bty = 'n')
+legend(-21020459, -5768919, legend = c( 'no implementation', 'partial implementation', 'full implementation', 'no data'), fill = c(colors[-1], colors[1]), bty = 'n')
 
 dev.off()
 
