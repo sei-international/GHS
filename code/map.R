@@ -15,7 +15,7 @@ worldmap <- 'data/TM_WORLD_BORDERS-0.3/TM_WORLD_BORDERS-0.3.shp'
 
 # load data
 wm <- shapefile(worldmap)
-d <- read.csv(file.path(outdir, 'data.csv'))
+d <- read.csv(file.path(outdir, 'data.csv'), check.names=F,strings=F)
 
 setnames(d, c('Country code', 'GHS  implementation key (0-2)'), c('ISO3','GHS'))
 
